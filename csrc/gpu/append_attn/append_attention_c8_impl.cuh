@@ -905,8 +905,8 @@ void MultiQueryAppendC8Attention(
                                                OUT_NV_TYPE,
                                                ENABLE_PREFILL>;
     if (smem_size >= 48 * 1024) {
-      cudaFuncSetAttribute(split_kv_kernel,
-                           cudaFuncAttributeMaxDynamicSharedMemorySize,
+      FuncSetAttribute(split_kv_kernel,
+                           FuncAttributeMaxDynamicSharedMemorySize,
                            smem_size);
     }
     const int dev_id = 0;
@@ -937,8 +937,8 @@ void MultiQueryAppendC8Attention(
                                                  OUT_NV_TYPE,
                                                  ENABLE_PREFILL>;
       if (smem_size >= 48 * 1024) {
-        cudaFuncSetAttribute(nosplit_kv_kernel,
-                             cudaFuncAttributeMaxDynamicSharedMemorySize,
+        FuncSetAttribute(nosplit_kv_kernel,
+                             FuncAttributeMaxDynamicSharedMemorySize,
                              smem_size);
       }
 
@@ -1127,8 +1127,8 @@ void MultiQueryAppendC8Attention(
                                                        OUT_NV_TYPE,
                                                        ENABLE_PREFILL>;
     if (smem_size >= 48 * 1024) {
-      cudaFuncSetAttribute(split_kv_kernel,
-                           cudaFuncAttributeMaxDynamicSharedMemorySize,
+      FuncSetAttribute(split_kv_kernel,
+                           FuncAttributeMaxDynamicSharedMemorySize,
                            smem_size);
     }
     const int dev_id = 0;
@@ -1160,8 +1160,8 @@ void MultiQueryAppendC8Attention(
                                                          OUT_NV_TYPE,
                                                          ENABLE_PREFILL>;
       if (smem_size >= 48 * 1024) {
-        cudaFuncSetAttribute(nosplit_kv_kernel,
-                             cudaFuncAttributeMaxDynamicSharedMemorySize,
+        FuncSetAttribute(nosplit_kv_kernel,
+                             FuncAttributeMaxDynamicSharedMemorySize,
                              smem_size);
       }
 

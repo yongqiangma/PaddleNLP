@@ -13,11 +13,10 @@
 // limitations under the License.
 #pragma once
 
-#include <cuda_bf16.h>
-#include <cuda_fp8.h>
-#include <cuda_runtime.h>
+#include "helper.h"
 #include "mem_util.cuh"
-    
+
+
 struct AppendAttnMetaData {
   int batch_size;
   int block_size;
@@ -43,7 +42,8 @@ struct cascade_attn_type_traits {
 
 template <>
 struct cascade_attn_type_traits<phi::dtype::bfloat16> {
-  using type = __nv_bfloat16;
+
+  
 };
 
 template <>
@@ -51,20 +51,20 @@ struct cascade_attn_type_traits<phi::dtype::float16> {
   using type = half;
 };
 
-template <>
-struct cascade_attn_type_traits<phi::dtype::float8_e4m3fn> {
-  using type = __nv_fp8_e4m3;
-};
+// template <>
+// struct cascade_attn_type_traits<phi::dtype::float8_e4m3fn> {
+//   using type = __nv_fp8_e4m3;
+// };
 
 template <typename T>
 struct cascade_attn_nv_type2_traits {
   using type = T;
 };
 
-template <>
-struct cascade_attn_nv_type2_traits<__nv_bfloat16> {
-  using type = __nv_bfloat162;
-};
+// template <>
+// struct cascade_attn_nv_type2_traits<__nv_bfloat16> {
+//   using type = __nv_bfloat162;
+// };
 
 template <>
 struct cascade_attn_nv_type2_traits<half> {
@@ -108,7 +108,7 @@ __device__ __forceinline__ uint32_t sub_if_greater_or_zero(uint32_t x,
 
 /******************************FASTER CAST*********************************/
 inline __device__ static void convert_int8(
-    __nv_bfloat16* result, const uint32_t& source) {  // 4 int8 each time
+    __device_bfloat16* result, const uint32_t& source) {  // 4 int8 each time
   uint32_t* bf16_result_ptr = reinterpret_cast<uint32_t*>(result);
   uint32_t const i8s = reinterpret_cast<uint32_t const&>(source);
 
@@ -160,7 +160,7 @@ inline __device__ static void convert_int8(
 }
 
 inline __device__ static void convert_int4(
-    __nv_bfloat16* result, const uint32_t& source) {  // 8 int4 each time
+    __device_bfloat16* result, const uint32_t& source) {  // 8 int4 each time
   uint32_t* bf16_result_ptr = reinterpret_cast<uint32_t*>(result);
 
   static constexpr uint32_t immLut = (0xf0 & 0xcc) | 0xaa;
@@ -224,7 +224,7 @@ __forceinline__ __host__ __device__ void vec_cast(dst_t* dst,
 }
 
 template <size_t vec_size>
-__forceinline__ __host__ __device__ void vec_cast<float, half>(
+__forceinline__ __host__ __device__ void vec_cast(
     float* dst, const half* src) {
 #pragma unroll
   for (size_t i = 0; i < vec_size / 2; ++i) {
@@ -233,7 +233,7 @@ __forceinline__ __host__ __device__ void vec_cast<float, half>(
 }
 
 template <size_t vec_size>
-__forceinline__ __host__ __device__ void vec_cast<half, float>(
+__forceinline__ __host__ __device__ void vec_cast(
     half* dst, const float* src) {
 #pragma unroll
   for (size_t i = 0; i < vec_size / 2; ++i) {
@@ -242,20 +242,20 @@ __forceinline__ __host__ __device__ void vec_cast<half, float>(
 }
 
 template <size_t vec_size>
-__forceinline__ __host__ __device__ void vec_cast<float, nv_bfloat16>(
-    float* dst, const nv_bfloat16* src) {
+__forceinline__ __host__ __device__ void vec_cast(
+    float* dst, const __device_bfloat16* src) {
 #pragma unroll
   for (size_t i = 0; i < vec_size / 2; ++i) {
-    ((float2*)dst)[i] = __bfloat1622float2(((nv_bfloat162*)src)[i]);
+    ((float2*)dst)[i] = __bfloat1622float2(((__device_bfloat162*)src)[i]);
   }
 }
 
 template <size_t vec_size>
-__forceinline__ __host__ __device__ void vec_cast<nv_bfloat16, float>(
-    nv_bfloat16* dst, const float* src) {
+__forceinline__ __host__ __device__ void vec_cast(
+    __device_bfloat16* dst, const float* src) {
 #pragma unroll
   for (size_t i = 0; i < vec_size / 2; ++i) {
-    ((nv_bfloat162*)dst)[i] = __float22bfloat162_rn(((float2*)src)[i]);
+    ((__device_bfloat162*)dst)[i] = __float22bfloat162_rn(((float2*)src)[i]);
   }
 }
 

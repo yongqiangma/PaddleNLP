@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "helper.h"
 #include<stdlib.h>
 #include<string.h>
 #include<sys/types.h>
@@ -22,56 +21,11 @@
 #include<sys/mman.h>
 #include<stdio.h>
 #include<algorithm>
-#ifdef PADDLE_WITH_HIP
-#include <hip/hip_fp16.h>
-#include <hip/hip_bfloat16.h>
-#else
-#include<cuda_fp16.h>
-#include<cuda_bf16.h>
-#endif
 
+#include "append_attn/utils.cuh"
+#include "helper_func.h"
 
 constexpr int DequantKernelVecSize = 4;
-
-template <typename data_t>
-inline HOSTDEVICE data_t roundWithTiesToEven(data_t x) {
-  data_t xLower = floor(x);
-  data_t xUpper = ceil(x);
-  // x is in interval [xl,xu]. Choose closest of two bounds, breaking ties to
-  // even.
-  data_t dLower = x - xLower;
-  data_t dUpper = xUpper - x;
-  return static_cast<data_t>(
-      (dLower == dUpper ? fmod(xLower, 2.0F) == 0.0F : dLower < dUpper)
-          ? xLower
-          : xUpper);
-}
-
-template <typename T>
-__forceinline__ __device__ T add_mul(T a, T b, T c) {
-    return (a + b) * c;
-}
-
-template<>
-__forceinline__ __device__ half add_mul<half>(half a, half b, half c) {
-    return __hmul(__hadd(a, b), c);
-}
-
-#ifdef PADDLE_WITH_HIP
-template<>
-__forceinline__ __device__ hip_bfloat16 add_mul<hip_bfloat16>(hip_bfloat16 a, hip_bfloat16 b, hip_bfloat16 c) {
-    return (a + b) * c;
-}
-#else
-template<>
-__forceinline__ __device__ __nv_bfloat16 add_mul<__nv_bfloat16>(__nv_bfloat16 a, __nv_bfloat16 b, __nv_bfloat16 c) {
-  #if __CUDA_ARCH__ >= 800
-    return __hmul(__hadd(a, b), c);
-  #else
-    return (static_cast<float>(a) + static_cast<float>(b)) * static_cast<float>(c);
-  #endif
-}
-#endif
 
 
 template <typename data_t>
@@ -80,7 +34,7 @@ __forceinline__ __device__ int8_t quant_helper(const data_t input,
                                                const int round_type,
                                                const float max_bound,
                                                const float min_bound) {
-  float quant_value = max_bound * scale * static_cast<float>(input);
+  float quant_value = max_bound * scale * convert2float(input);
 
   if (round_type == 0) {
     quant_value = static_cast<float>(roundWithTiesToEven(quant_value));
@@ -101,7 +55,7 @@ __forceinline__ __device__ int8_t quant_helper(const data_t input,
                                                const float max_bound,
                                                const float min_bound) {
   auto smooth_out = add_mul(input, shift, smooth);
-  float quant_value = max_bound * scale * static_cast<float>(smooth_out);
+  float quant_value = max_bound * scale * convert2float(smooth_out);
 
   if (round_type == 0) {
     quant_value = static_cast<float>(roundWithTiesToEven(quant_value));

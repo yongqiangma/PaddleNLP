@@ -12,33 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "helper.h"
-#include<stdlib.h>
-#include<string.h>
-#include<sys/types.h>
-#include<sys/stat.h>
-#include<unistd.h>
-#include<fcntl.h>
-#include<sys/mman.h>
-#include<stdio.h>
-#include<algorithm>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <stdio.h>
+#include <algorithm>
 
+#include "helper_func.h"
 
 constexpr int DequantKernelVecSize = 4;
-
-template <typename data_t>
-inline HOSTDEVICE data_t roundWithTiesToEven(data_t x) {
-  data_t xLower = floor(x);
-  data_t xUpper = ceil(x);
-  // x is in interval [xl,xu]. Choose closest of two bounds, breaking ties to
-  // even.
-  data_t dLower = x - xLower;
-  data_t dUpper = xUpper - x;
-  return static_cast<data_t>(
-      (dLower == dUpper ? fmod(xLower, 2.0F) == 0.0F : dLower < dUpper)
-          ? xLower
-          : xUpper);
-}
 
 template <typename data_t, int VecSize>
 __global__ void DequantKernel(data_t* output,
@@ -62,7 +48,7 @@ __global__ void DequantKernel(data_t* output,
 #pragma unroll
     for (int i = 0; i < VecSize; ++i) {
       out_vec[i] =
-          static_cast<data_t>(static_cast<float>(in_vec[i]) * out_scale_vec[i]);
+          type_convert<data_t>(static_cast<float>(in_vec[i]) * out_scale_vec[i]);
     }
 
     Store<data_t, VecSize>(out_vec, output + idx);

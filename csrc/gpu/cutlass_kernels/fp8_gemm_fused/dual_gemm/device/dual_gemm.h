@@ -500,14 +500,14 @@ class DualGemm {
     int smem_size =
         int(sizeof(typename DualGemmKernel::SharedStorage));  // NOLINT
     if (smem_size >= (48 << 10)) {
-      result = cudaFuncSetAttribute(Kernel<DualGemmKernel>,
-                                    cudaFuncAttributeMaxDynamicSharedMemorySize,
+      result = FuncSetAttribute(Kernel<DualGemmKernel>,
+                                    FuncAttributeMaxDynamicSharedMemorySize,
                                     smem_size);
 
       if (result != cudaSuccess) {
         printf(
-            "cudaFuncSetAttribute(Kernel<DualGemmKernel>, "
-            "cudaFuncAttributeMaxDynamicSharedMemorySize, %d) returned an "
+            "FuncSetAttribute(Kernel<DualGemmKernel>, "
+            "FuncAttributeMaxDynamicSharedMemorySize, %d) returned an "
             "error\n",
             smem_size);
         return Status::kErrorInternal;

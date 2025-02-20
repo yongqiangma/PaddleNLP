@@ -1246,7 +1246,7 @@ void rotary_qk_variable(
     const int seq_len,
     const int input_output_len,
     const int dim_head,
-    const cudaStream_t &stream,
+    const deviceStream_t &stream,
     bool use_neox_style = false) {
   int64_t elem_nums =
       qkv_out_scales ? token_num * 3 * head_num * dim_head
@@ -1347,7 +1347,7 @@ void gqa_rotary_qk_variable(
     const int seq_len,
     const int input_output_len,
     const int dim_head,
-    const cudaStream_t &stream,
+    const deviceStream_t &stream,
     bool use_neox_style = false) {
   int64_t elem_nums =
       qkv_out_scales
@@ -1451,7 +1451,7 @@ void CascadeAppendWriteCacheKVQKV(
     const paddle::Tensor &seq_lens_encoder,
     const paddle::Tensor &seq_lens_decoder,
     const int max_seq_len,
-    cudaStream_t &stream,
+    deviceStream_t &stream,
     paddle::Tensor *key_cache_out,
     paddle::Tensor *value_cache_out) {
   auto max_blocks_per_seq = meta_data.max_blocks_per_seq;
@@ -1504,7 +1504,7 @@ void CascadeAppendWriteCacheKVC8QKV(
     const paddle::Tensor &tile_ids_per_batch,
     int num_blocks_x_cpu,
     int max_seq_len,
-    cudaStream_t &stream,
+    deviceStream_t &stream,
     paddle::Tensor *cache_k_out,
     paddle::Tensor *cache_v_out) {
   auto max_blocks_per_seq = meta_data.max_blocks_per_seq;
@@ -1530,8 +1530,8 @@ void CascadeAppendWriteCacheKVC8QKV(
                                                 HEAD_DIM,
                                                 BLOCK_SIZE,
                                                 num_warps>;
-  cudaFuncSetAttribute(
-      kernel_fn, cudaFuncAttributeMaxDynamicSharedMemorySize, smem_size);
+  FuncSetAttribute(
+      (const void*)kernel_fn, FuncAttributeMaxDynamicSharedMemorySize, smem_size);
   kernel_fn<<<grids, blocks, 0, stream>>>(cache_k_out->data<uint8_t>(),
                                           cache_v_out->data<uint8_t>(),
                                           qkv.data<T>(),
@@ -1571,7 +1571,7 @@ void CascadeAppendWriteCacheKVC4QKV(
     const paddle::Tensor &tile_ids_per_batch,
     int num_blocks_x_cpu,
     int max_seq_len,
-    cudaStream_t &stream,
+    deviceStream_t &stream,
     paddle::Tensor *cache_k_out,
     paddle::Tensor *cache_v_out) {
   auto max_blocks_per_seq = meta_data.max_blocks_per_seq;
@@ -1598,8 +1598,8 @@ void CascadeAppendWriteCacheKVC4QKV(
                                                 HEAD_DIM,
                                                 BLOCK_SIZE,
                                                 num_warps>;
-  cudaFuncSetAttribute(
-      kernel_fn, cudaFuncAttributeMaxDynamicSharedMemorySize, smem_size);
+  FuncSetAttribute(
+      (const void*)kernel_fn, FuncAttributeMaxDynamicSharedMemorySize, smem_size);
   kernel_fn<<<grids, blocks, 0, stream>>>(cache_k_out->data<uint8_t>(),
                                           cache_v_out->data<uint8_t>(),
                                           qkv.data<T>(),

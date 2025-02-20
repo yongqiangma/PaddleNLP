@@ -56,7 +56,7 @@ void CascadeAppendAttentionC16Kernel(
     const bool causal,
     const bool is_decoder,
     const bool enable_prefill,
-    cudaStream_t& stream,
+    deviceStream_t& stream,
     paddle::Tensor* out);
 
 template <typename T, typename OutT>
@@ -99,7 +99,7 @@ void CascadeAppendAttentionC8Kernel(
     const bool causal,
     const bool is_decoder,
     const bool enable_prefill,
-    cudaStream_t& stream,
+    deviceStream_t& stream,
     paddle::Tensor* out);
 
 template <typename T, typename OutT>
@@ -142,7 +142,7 @@ void CascadeAppendAttentionC4Kernel(
     const bool causal,
     const bool is_decoder,
     const bool enable_prefill,
-    cudaStream_t& stream,
+    deviceStream_t& stream,
     paddle::Tensor* out);
 
 template <typename T, typename OutT>
@@ -186,7 +186,7 @@ void CascadeAppendAttentionKernel(
     const bool causal,
     const bool is_decoder,
     const bool enable_prefill,
-    cudaStream_t& stream,
+    deviceStream_t& stream,
     paddle::Tensor* out) {
   if (cache_quant_type_str == "none") {
     CascadeAppendAttentionC16Kernel<T, OutT>(meta_data,

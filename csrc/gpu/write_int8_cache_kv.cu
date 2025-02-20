@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "helper.h"
+#include "helper_func.h"
 
 #ifdef PADDLE_WITH_HIP
 constexpr int32_t WARP_SIZE = 64; 
@@ -32,7 +32,7 @@ inline __device__ __host__ T div_up(T m, T n) {
 template<typename T>
 struct QuantFunc{
   __host__ __device__ uint8_t operator()(T x, float quant_scale) {
-    float tmp = static_cast<float>(x) * quant_scale;
+    float tmp = type_convert<float>(x) * quant_scale;
     tmp = round(tmp);
     if (tmp > QUANT_MAX_BOUND)
       tmp = QUANT_MAX_BOUND;
@@ -62,9 +62,9 @@ struct MaxFunc<half>{
 
 #ifdef PADDLE_WITH_HIP
 template<>
-struct MaxFunc<hip_bfloat16>{
-  __device__ hip_bfloat16 operator()(hip_bfloat16 a, hip_bfloat16 b){
-    return static_cast<hip_bfloat16>(max(static_cast<float>(a), static_cast<float>(b)));
+struct MaxFunc<__device_bfloat16>{
+  __device__ __device_bfloat16 operator()(__device_bfloat16 a, __device_bfloat16 b){
+    return type_convert<__device_bfloat16>(max(type_convert<float>(a), type_convert<float>(b)));
   }
 }; 
 #else
@@ -100,15 +100,15 @@ struct AbsFunc<half>{
 
 #ifdef PADDLE_WITH_HIP
 template<>
-struct AbsFunc<hip_bfloat16>{
-  __device__ hip_bfloat16 operator()(hip_bfloat16 x) {
-    return static_cast<hip_bfloat16>(abs(static_cast<float>(x)));
+struct AbsFunc<__device_bfloat16>{
+  __device__ __device_bfloat16 operator()(__device_bfloat16 x) {
+    return type_convert<__device_bfloat16>(abs(type_convert<float>(x)));
   }
 }; 
 #else
 template<>
-struct AbsFunc<__nv_bfloat16>{
-  __device__ __nv_bfloat16 operator()(__nv_bfloat16 x){
+struct AbsFunc<__device_bfloat16>{
+  __device__ __device_bfloat16 operator()(__device_bfloat16 x){
   #if __CUDA_ARCH__ >= 800
     return __habs(x); 
   #else
@@ -120,10 +120,14 @@ struct AbsFunc<__nv_bfloat16>{
 
 template <typename T, typename Vec, int VecSize>
 __inline__ __device__ T LocalReduceMax(Vec& vec) {
-  T local_max = static_cast<T>(0.0);
+  T local_max = type_convert<T>(0.0f);
   #pragma unroll
   for (int i = 0; i < VecSize; ++i) {
+#ifdef PADDLE_WITH_HIP
+    local_max = type_convert<float>(vec[i]) > type_convert<float>(local_max) ?  vec[i] : local_max;
+#else
     local_max = vec[i] > local_max ?  vec[i] : local_max;
+#endif
   }
   return local_max;
 }
@@ -133,7 +137,7 @@ __inline__ __device__ T WarpReduceAbsMax(T val, unsigned lane_mask) {
   #pragma unroll
   for (int mask = HALF_WARP; mask > 0; mask >>= 1){
 #ifdef PADDLE_WITH_HIP
-    val = MaxFunc<T>()(val, static_cast<T>(__shfl_xor(static_cast<float>(val), mask, WARP_SIZE)));
+    val = MaxFunc<T>()(val, type_convert<T>(__shfl_xor(type_convert<float>(val), mask, WARP_SIZE)));
 #else
     val = MaxFunc<T>()(val, __shfl_xor_sync(lane_mask, val, mask, WARP_SIZE));
 #endif
@@ -155,7 +159,7 @@ __inline__ __device__ T BlockReduceAbsMax(T val, unsigned mask) {
 
     __syncthreads();
 
-    T abs_max_val = (threadIdx.x < (blockDim.x / WARP_SIZE)) ? smem[threadIdx.x] : static_cast<T>(0.0f);
+    T abs_max_val = (threadIdx.x < (blockDim.x / WARP_SIZE)) ? smem[threadIdx.x] : type_convert<T>(0.0f);
     abs_max_val = WarpReduceAbsMax(abs_max_val, mask);
     return abs_max_val;
 }
@@ -174,7 +178,7 @@ __global__ void write_cache_k_int8_kernel(const T* k, const int64_t num_head, co
     InVec abs_max_vec;
 #pragma unroll
     for (int i = 0; i < VecSize; ++i) {
-      abs_max_vec[i] = static_cast<T>(0.0f);
+      abs_max_vec[i] = type_convert<T>(0.0f);
     }
 
     T local_abs_max;
@@ -193,7 +197,7 @@ __global__ void write_cache_k_int8_kernel(const T* k, const int64_t num_head, co
 
     __shared__ float quant_scale;
     if (threadIdx.x == 0) {
-      quant_scale = 127.0f / static_cast<float>(abs_max_val);
+      quant_scale = 127.0f / type_convert<float>(abs_max_val);
     }
 
     __syncthreads();
@@ -232,7 +236,7 @@ __global__ void write_cache_v_int8_kernel(const T* v, const int64_t num_head, co
     InVec abs_max_vec;
   #pragma unroll
     for (int i = 0; i < VecSize; ++i) {
-      abs_max_vec[i] = static_cast<T>(0.0f);
+      abs_max_vec[i] = type_convert<T>(0.0f);
     }
 
     T local_abs_max;
@@ -251,7 +255,7 @@ __global__ void write_cache_v_int8_kernel(const T* v, const int64_t num_head, co
 
     __shared__ float quant_scale;
     if (threadIdx.x == 0) {
-      quant_scale = 127.0f / static_cast<float>(abs_max_val);
+      quant_scale = 127.0f / type_convert<float>(abs_max_val);
     }
 
     __syncthreads();

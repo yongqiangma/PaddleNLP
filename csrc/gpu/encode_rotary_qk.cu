@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "helper.h"
+#include "helper_func.h"
 
 template <typename T>
 __global__ void NeoXRotaryKernel(const T *input,
@@ -38,8 +38,8 @@ __global__ void NeoXRotaryKernel(const T *input,
     int emb_idx_left = bi * seq_len * last_dim + si * last_dim + ti;
     int emb_idx_right =
         bi * seq_len * last_dim + si * last_dim + ti + half_lastdim;
-    float input_left = static_cast<float>(input[left_idx]);
-    float input_right = static_cast<float>(input[right_idx]);
+    float input_left = type_convert<float>(input[left_idx]);
+    float input_right = type_convert<float>(input[right_idx]);
 
     float cos_tmp_left = cos_emb[emb_idx_left];
     float sin_tmp_left = sin_emb[emb_idx_left];
@@ -47,8 +47,8 @@ __global__ void NeoXRotaryKernel(const T *input,
     float sin_tmp_right = sin_emb[emb_idx_right];
 
     T res1 =
-        static_cast<T>(input_left * cos_tmp_left - input_right * sin_tmp_left);
-    T res2 = static_cast<T>(input_right * cos_tmp_right +
+        type_convert<T>(input_left * cos_tmp_left - input_right * sin_tmp_left);
+    T res2 = type_convert<T>(input_right * cos_tmp_right +
                             input_left * sin_tmp_right);
     output[left_idx] = res1;
     output[right_idx] = res2;
@@ -80,12 +80,12 @@ __global__ void RotaryKernel(const T *input,
     int left_idx = base_idx + 2 * ti;
     const int right_idx = base_idx + 2 * ti + 1;
     int emb_idx = bi * seq_len * last_dim + si * last_dim + 2 * ti;
-    float input_left = static_cast<float>(input[left_idx]);
-    float input_right = static_cast<float>(input[right_idx]);
+    float input_left = convert2float(input[left_idx]);
+    float input_right = convert2float(input[right_idx]);
     float cos_tmp = cos_emb[emb_idx];
     float sin_tmp = sin_emb[emb_idx];
-    T res1 = static_cast<T>(input_left * cos_tmp - input_right * sin_tmp);
-    T res2 = static_cast<T>(input_right * cos_tmp + input_left * sin_tmp);
+    T res1 = type_convert<T>(input_left * cos_tmp - input_right * sin_tmp);
+    T res2 = type_convert<T>(input_right * cos_tmp + input_left * sin_tmp);
     output[left_idx] = res1;
     output[right_idx] = res2;
   }

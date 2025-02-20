@@ -38,7 +38,7 @@ void append_speculate_cache_rope(const QKV_TYPE* qkv,
                                  const int block_size,
                                  const int bsz,
                                  const int token_num,
-                                 const cudaStream_t& stream,
+                                 const deviceStream_t& stream,
                                  const bool use_neox_style) {
   int output_inner_dim = num_heads + 2 * kv_num_heads;
 
@@ -124,7 +124,7 @@ void append_speculate_cache_int8_rope(const QKV_TYPE* qkv,
                                       const int block_size,
                                       const int bsz,
                                       const int token_num,
-                                      const cudaStream_t& stream,
+                                      const deviceStream_t& stream,
                                       const bool use_neox_style) {
   constexpr int num_warps = 4;
   const int all_warps =
@@ -221,7 +221,7 @@ void append_speculate_cache_int4_rope(const QKV_TYPE* qkv,
                                       const int block_size,
                                       const int bsz,
                                       const int token_num,
-                                      const cudaStream_t& stream,
+                                      const deviceStream_t& stream,
                                       const bool use_neox_style) {
   constexpr int num_warps = 4;
   const int all_warps =
@@ -314,7 +314,7 @@ void SpeculateWriteCacheWithRoPEKernel(
     const std::string& cache_quant_type_str,
     const bool use_neox_rotary_style,
     const int max_seq_len,
-    cudaStream_t& stream,
+    deviceStream_t& stream,
     paddle::Tensor* qkv_out,
     paddle::Tensor* key_cache_out,
     paddle::Tensor* value_cache_out) {
@@ -468,7 +468,7 @@ template void SpeculateWriteCacheWithRoPEKernel<paddle::bfloat16, int>(
     const std::string& cache_quant_type_str,
     const bool use_neox_rotary_style,
     const int max_seq_len,
-    cudaStream_t& stream,
+    deviceStream_t& stream,
     paddle::Tensor* qkv_out,
     paddle::Tensor* key_cache_out,
     paddle::Tensor* value_cache_out);
@@ -494,7 +494,7 @@ SpeculateWriteCacheWithRoPEKernel<paddle::bfloat16, paddle::bfloat16>(
     const std::string& cache_quant_type_str,
     const bool use_neox_rotary_style,
     const int max_seq_len,
-    cudaStream_t& stream,
+    deviceStream_t& stream,
     paddle::Tensor* qkv_out,
     paddle::Tensor* key_cache_out,
     paddle::Tensor* value_cache_out);
@@ -519,7 +519,7 @@ template void SpeculateWriteCacheWithRoPEKernel<paddle::float16, int>(
     const std::string& cache_quant_type_str,
     const bool use_neox_rotary_style,
     const int max_seq_len,
-    cudaStream_t& stream,
+    deviceStream_t& stream,
     paddle::Tensor* qkv_out,
     paddle::Tensor* key_cache_out,
     paddle::Tensor* value_cache_out);
@@ -546,7 +546,7 @@ SpeculateWriteCacheWithRoPEKernel<paddle::float16, paddle::float16>(
     const std::string& cache_quant_type_str,
     const bool use_neox_rotary_style,
     const int max_seq_len,
-    cudaStream_t& stream,
+    deviceStream_t& stream,
     paddle::Tensor* qkv_out,
     paddle::Tensor* key_cache_out,
     paddle::Tensor* value_cache_out);

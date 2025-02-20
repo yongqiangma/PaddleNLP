@@ -36,7 +36,7 @@ void DecoderWriteCacheWithRoPEKernel(
     const std::string& cache_quant_type_str,
     const bool use_neox_rotary_style,
     const int max_seq_len,
-    cudaStream_t& stream,
+    deviceStream_t& stream,
     paddle::Tensor* qkv_out,
     paddle::Tensor* key_cache_out,
     paddle::Tensor* value_cache_out);

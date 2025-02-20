@@ -36,7 +36,7 @@ void append_decode_cache_rope(const QKV_TYPE* qkv,
                               const int dim_head,
                               const int block_size,
                               const int bsz,
-                              const cudaStream_t& stream,
+                              const deviceStream_t& stream,
                               const bool use_neox_style) {
   const uint32_t elem_nums =
       use_neox_style ? bsz * (num_heads + 2 * kv_num_heads) * dim_head / 2
@@ -163,7 +163,7 @@ void append_decode_cache_int8_rope(const QKV_TYPE* qkv,
                                    const int dim_head,
                                    const int block_size,
                                    const int bsz,
-                                   const cudaStream_t& stream,
+                                   const deviceStream_t& stream,
                                    const bool use_neox_style) {
   constexpr int num_warps = 4;
   const int all_warps =
@@ -297,7 +297,7 @@ void append_decode_cache_int4_rope(const QKV_TYPE* qkv,
                                    const int dim_head,
                                    const int block_size,
                                    const int bsz,
-                                   const cudaStream_t& stream,
+                                   const deviceStream_t& stream,
                                    const bool use_neox_style) {
   constexpr int num_warps = 4;
   const int all_warps =
@@ -432,7 +432,7 @@ void DecoderWriteCacheWithRoPEKernel(
     const std::string& cache_quant_type_str,
     const bool use_neox_rotary_style,
     const int max_seq_len,
-    cudaStream_t& stream,
+    deviceStream_t& stream,
     paddle::Tensor* qkv_out,
     paddle::Tensor* key_cache_out,
     paddle::Tensor* value_cache_out) {
@@ -582,7 +582,7 @@ template void DecoderWriteCacheWithRoPEKernel<paddle::bfloat16, int>(
     const std::string& cache_quant_type_str,
     const bool use_neox_rotary_style,
     const int max_seq_len,
-    cudaStream_t& stream,
+    deviceStream_t& stream,
     paddle::Tensor* qkv_out,
     paddle::Tensor* key_cache_out,
     paddle::Tensor* value_cache_out);
@@ -608,7 +608,7 @@ DecoderWriteCacheWithRoPEKernel<paddle::bfloat16, paddle::bfloat16>(
     const std::string& cache_quant_type_str,
     const bool use_neox_rotary_style,
     const int max_seq_len,
-    cudaStream_t& stream,
+    deviceStream_t& stream,
     paddle::Tensor* qkv_out,
     paddle::Tensor* key_cache_out,
     paddle::Tensor* value_cache_out);
@@ -633,7 +633,7 @@ template void DecoderWriteCacheWithRoPEKernel<paddle::float16, int>(
     const std::string& cache_quant_type_str,
     const bool use_neox_rotary_style,
     const int max_seq_len,
-    cudaStream_t& stream,
+    deviceStream_t& stream,
     paddle::Tensor* qkv_out,
     paddle::Tensor* key_cache_out,
     paddle::Tensor* value_cache_out);
@@ -658,7 +658,7 @@ template void DecoderWriteCacheWithRoPEKernel<paddle::float16, paddle::float16>(
     const std::string& cache_quant_type_str,
     const bool use_neox_rotary_style,
     const int max_seq_len,
-    cudaStream_t& stream,
+    deviceStream_t& stream,
     paddle::Tensor* qkv_out,
     paddle::Tensor* key_cache_out,
     paddle::Tensor* value_cache_out);

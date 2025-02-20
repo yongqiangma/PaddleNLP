@@ -24,15 +24,22 @@
 #include <stdio.h>
 #ifdef PADDLE_WITH_HIP
 #include <hip/hip_runtime.h>
+#include <hip/hip_bf16.h>
 #include <hip/hip_fp16.h>
-#include <hip/hip_bfloat16.h>
+#include <hip/hip_runtime.h>
 #include <hipcub/hipcub.hpp>
 #include <hiprand.h>
 #include <hiprand_kernel.h>
 namespace cub = hipcub;
+// typedef hipStream_t device_stream;
 #else
+#include <cuda_bf16.h>
+#include <cuda_fp8.h>
+#include <cuda_runtime.h>
 #include <cub/cub.cuh>
 #include <curand_kernel.h>
+#include <cuda_runtime.h>
+// typedef cudaStream_t device_stream;
 #endif
 #include <iostream>
 #include <fstream>
@@ -43,6 +50,49 @@ namespace cub = hipcub;
 #include "nlohmann/json.hpp"
 
 using json = nlohmann::json;
+
+#ifdef PADDLE_WITH_HIP
+  typedef struct __hip_bfloat16 __device_bfloat16;
+  typedef struct __hip_bfloat162 __device_bfloat162;
+  using deviceStream_t = hipStream_t;
+  using deviceEvent_t = hipEvent_t;
+
+  // enum
+  constexpr hipFuncAttribute FuncAttributeMaxDynamicSharedMemorySize = 
+    hipFuncAttributeMaxDynamicSharedMemorySize;
+
+  // define
+  #define EventDisableTiming hipEventDisableTiming
+  #define StreamNonBlocking hipStreamNonBlocking
+  
+    // func
+  #define FuncSetAttribute hipFuncSetAttribute
+  #define EventCreateWithFlags hipEventCreateWithFlags
+  #define StreamCreateWithFlags hipStreamCreateWithFlags
+  #define EventRecord hipEventRecord
+  #define StreamWaitEvent hipStreamWaitEvent
+    
+#else
+  typedef __nv_bfloat16 __device_bfloat16;
+  typedef nv_bfloat162 __device_bfloat162;
+  using deviceStream_t = cudaStream_t;
+  using deviceEvent_t = cudaEvent_t;
+  // enum
+  constexpr cudaFuncAttribute FuncAttributeMaxDynamicSharedMemorySize = 
+    cudaFuncAttributeMaxDynamicSharedMemorySize;
+
+  // define
+  #define EventDisableTiming cudaEventDisableTiming
+  #define StreamNonBlocking cudaStreamNonBlocking
+
+    // func
+  #define FuncSetAttribute cudaFuncSetAttribute
+  #define EventCreateWithFlags cudaEventCreateWithFlags
+  #define StreamCreateWithFlags cudaStreamCreateWithFlags
+  #define EventRecord cudaEventRecord
+  #define StreamWaitEvent cudaStreamWaitEvent
+#endif
+
 
 #define CUDA_CHECK(call)                           \
   do {                                             \
@@ -143,11 +193,7 @@ public:
 template <>
 class PDTraits<paddle::DataType::BFLOAT16> {
 public:
-#ifdef PADDLE_WITH_HIP
-  typedef hip_bfloat16 DataType;
-#else
-  typedef __nv_bfloat16 DataType;
-#endif
+  typedef __device_bfloat16 DataType;
   typedef paddle::bfloat16 data_t;
 };
 
@@ -180,8 +226,8 @@ HOSTDEVICE inline void Store(const AlignedVector<hip_bfloat16, Size>& vec, int8_
 }
 #else
 template <int Size>
-HOSTDEVICE inline void Store(const AlignedVector<__nv_bfloat16, Size>& vec, int8_t* addr) {
-  printf("Error: Store __nv_bfloat16 to int8_t is not supported!");
+HOSTDEVICE inline void Store(const AlignedVector<__device_bfloat16, Size>& vec, int8_t* addr) {
+  printf("Error: Store bfloat16 to int8_t is not supported!");
 }
 #endif
 

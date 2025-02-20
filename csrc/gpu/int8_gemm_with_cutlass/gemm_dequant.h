@@ -1554,8 +1554,8 @@ class GemmDequant {
     cudaError_t result;
 
     if (gemm_smem_size >= (48 << 10)) {
-      result = cudaFuncSetAttribute(cutlass::Kernel<GemmKernel>,
-                                    cudaFuncAttributeMaxDynamicSharedMemorySize,
+      result = FuncSetAttribute(cutlass::Kernel<GemmKernel>,
+                                    FuncAttributeMaxDynamicSharedMemorySize,
                                     gemm_smem_size);
 
       if (result != cudaSuccess) {

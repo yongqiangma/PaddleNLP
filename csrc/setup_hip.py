@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from paddle.utils.cpp_extension import CUDAExtension, setup
 import subprocess
+
+from paddle.utils.cpp_extension import CUDAExtension, setup
+
 
 def update_git_submodule():
     try:
@@ -21,6 +23,8 @@ def update_git_submodule():
     except subprocess.CalledProcessError as e:
         print(f"Error occurred while updating git submodule: {str(e)}")
         raise
+
+
 update_git_submodule()
 setup(
     name="paddlenlp_ops",
@@ -52,6 +56,10 @@ setup(
             "./gpu/flash_attn_bwd.cc",
             "./gpu/update_inputs_v2.cu",
             "./gpu/set_preids_token_penalty_multi_scores.cu",
+            "./gpu/append_attention.cu",
+            "./gpu/append_attn/get_block_shape_and_split_kv_block.cu",
+            "./gpu/append_attn/template_instantiation/encoder_write_cache_with_rope_bfloat16_bfloat16_kernel.cu",
+            "./gpu/append_attn/template_instantiation/encoder_write_cache_with_rope_bfloat16_int_kernel.cu",
         ],
         extra_compile_args={
             "cxx": ["-O3"],
@@ -64,6 +72,8 @@ setup(
                 "-U__HIP_NO_BFLOAT16_CONVERSIONS__",
                 "-U__HIP_NO_BFLOAT162_OPERATORS__",
                 "-U__HIP_NO_BFLOAT162_CONVERSIONS__",
+                "-Igpu",
+                "-Igpu/append_attn",
                 "-Ithird_party/cutlass/include",
                 "-Ithird_party/nlohmann_json/single_include",
             ],

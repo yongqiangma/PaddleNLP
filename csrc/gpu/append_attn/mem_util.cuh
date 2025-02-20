@@ -13,7 +13,7 @@
 // limitations under the License.
 #pragma once
 
-#include <cuda_runtime.h>
+#include "helper.h"
 #include <stdint.h>
 
 enum class SharedMemFillMode { kFillZero, kNoFill };
@@ -22,58 +22,81 @@ enum class PrefetchMode { kNoPrefetch, kPrefetch };
 
 template <typename T>
 __device__ __forceinline__ void ldmatrix_m8n8x4_impl(uint32_t* R, T* smem_ptr) {
+#if 0
   uint32_t smem_int_ptr =
       static_cast<uint32_t>(__cvta_generic_to_shared(smem_ptr));
   asm volatile(
       "ldmatrix.sync.aligned.m8n8.x4.shared.b16 {%0, %1, %2, %3}, [%4];\n"
       : "=r"(R[0]), "=r"(R[1]), "=r"(R[2]), "=r"(R[3])
       : "r"(smem_int_ptr));
+#endif
 }
 
 template <typename T>
 __device__ __forceinline__ void ldmatrix_m8n8x4_trans_impl(uint32_t* R,
                                                            T* smem_ptr) {
+#if 1
   uint32_t smem_int_ptr =
       static_cast<uint32_t>(__cvta_generic_to_shared(smem_ptr));
   asm volatile(
       "ldmatrix.sync.aligned.trans.m8n8.x4.shared.b16 {%0, %1, %2, %3}, [%4];\n"
       : "=r"(R[0]), "=r"(R[1]), "=r"(R[2]), "=r"(R[3])
       : "r"(smem_int_ptr));
+#endif
+}
+#ifdef PADDLE_WITH_HIP
+// using int32x4_t  = typename vector_type<int32_t, 4>::type;
+template <bool pre_nop = false>
+__device__ __forceinline__  void async_buffer_load_dword_v(void* smem, uint32_t rsrc, uint32_t voffset) {
+  auto const lds_ptr_sgpr = __builtin_amdgcn_readfirstlane((reinterpret_cast<uintptr_t>(smem)));
+  asm volatile(
+      "s_mov_b32 m0, %0; \n\t"
+      "buffer_load_dword %1, %2, 0 offen lds;\n\t" ::"s"(lds_ptr_sgpr),
+      "v"(voffset), "s"(rsrc)
+      : "memory");
 }
 
+#endif
 __device__ __forceinline__ void commit_group() {
-  asm volatile("cp.async.commit_group;\n" ::);
+  // asm volatile("cp.async.commit_group;\n" ::);
 }
 
 template <size_t n>
 __device__ __forceinline__ void wait_group() {
-  asm volatile("cp.async.wait_group %0;\n" ::"n"(n));
+  // asm volatile("cp.async.wait_group %0;\n" ::"n"(n));
 }
 
 template <PrefetchMode prefetch_mode, typename T>
 __device__ __forceinline__ void load_128b(T* smem_ptr, const T* gmem_ptr) {
+  constexpr int N = 4;
+  if constexpr(N == 4) {
+  async_buffer_load_dword_v(smem_ptr, *gmem_ptr, threadIdx.x * N /*assume 4 bytes*/);
+}
+#if 0
   uint32_t smem_int_ptr =
       static_cast<uint32_t>(__cvta_generic_to_shared(smem_ptr));
   if constexpr (prefetch_mode == PrefetchMode::kPrefetch) {
-    asm volatile(
-        "cp.async.cg.shared.global.L2::128B [%0], [%1], %2, %3;\n" ::"r"(
-            smem_int_ptr),
-        "l"(gmem_ptr),
-        "n"(16),
-        "r"(16));
+    // asm volatile(
+    //     "cp.async.cg.shared.global.L2::128B [%0], [%1], %2, %3;\n" ::"r"(
+    //         smem_int_ptr),
+    //     "l"(gmem_ptr),
+    //     "n"(16),
+    //     "r"(16));
   } else {
-    asm volatile(
-        "cp.async.cg.shared.global [%0], [%1], %2, %3;\n" ::"r"(smem_int_ptr),
-        "l"(gmem_ptr),
-        "n"(16),
-        "r"(16));
+    // asm volatile(
+    //     "cp.async.cg.shared.global [%0], [%1], %2, %3;\n" ::"r"(smem_int_ptr),
+    //     "l"(gmem_ptr),
+    //     "n"(16),
+    //     "r"(16));
   }
+#endif
 }
 
 template <PrefetchMode prefetch_mode, SharedMemFillMode fill_mode, typename T>
 __device__ __forceinline__ void pred_load_128b(T* smem_ptr,
                                                const T* gmem_ptr,
                                                bool predicate) {
+#if 0
   uint32_t smem_int_ptr =
       static_cast<uint32_t>(__cvta_generic_to_shared(smem_ptr));
   if constexpr (fill_mode == SharedMemFillMode::kFillZero) {
@@ -115,12 +138,14 @@ __device__ __forceinline__ void pred_load_128b(T* smem_ptr,
           "n"(16));
     }
   }
+#endif
 }
 
 template <PrefetchMode prefetch_mode, SharedMemFillMode fill_mode, typename T>
 __device__ __forceinline__ void pred_load_64b(T* smem_ptr,
                                               const T* gmem_ptr,
                                               bool predicate) {
+#if 0
   uint32_t smem_int_ptr =
       static_cast<uint32_t>(__cvta_generic_to_shared(smem_ptr));
   if constexpr (fill_mode == SharedMemFillMode::kFillZero) {
@@ -141,12 +166,14 @@ __device__ __forceinline__ void pred_load_64b(T* smem_ptr,
         "l"(gmem_ptr),
         "n"(8));
   }
+#endif
 }
 
 template <PrefetchMode prefetch_mode, SharedMemFillMode fill_mode, typename T>
 __device__ __forceinline__ void pred_load_32b(T* smem_ptr,
                                               const T* gmem_ptr,
                                               bool predicate) {
+#if 0
   uint32_t smem_int_ptr =
       static_cast<uint32_t>(__cvta_generic_to_shared(smem_ptr));
   if constexpr (fill_mode == SharedMemFillMode::kFillZero) {
@@ -167,6 +194,7 @@ __device__ __forceinline__ void pred_load_32b(T* smem_ptr,
         "l"(gmem_ptr),
         "n"(4));
   }
+#endif
 }
 
 template <size_t num_bits, PrefetchMode prefetch_mode, typename T>

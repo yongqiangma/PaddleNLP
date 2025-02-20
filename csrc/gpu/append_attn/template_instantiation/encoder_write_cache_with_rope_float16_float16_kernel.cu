@@ -37,7 +37,7 @@ template void EncoderWriteCacheWithRopeKernel<paddle::float16, paddle::float16>(
     const int num_blocks,
     const int max_seq_len,
     const bool use_neox_style,
-    cudaStream_t& stream,
+    deviceStream_t& stream,
     paddle::Tensor* qkv_out,
     paddle::Tensor* key_cache_out,
     paddle::Tensor* value_cache_out);

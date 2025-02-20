@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "helper.h"
+#include "helper_func.h"
 
 
 template<typename T>
@@ -30,7 +30,8 @@ __global__ inline void min_length_logits_process(T* logits,
     }
     if (cur_len[bi] < min_len[bi]) {
         for (int i=0; i < end_length; i++) {
-            logits[bi * length + eos_token_id[i]] = -1e10;
+            // logits[bi * length + eos_token_id[i]] = -1e10;
+            logits[bi * length + eos_token_id[i]] = static_cast<T>(-1e10);
         }
     }
 }
@@ -55,6 +56,25 @@ __global__ inline void min_length_logits_process<half>(half* logits,
     }
 }
 
+template<>
+__global__ inline void min_length_logits_process<__device_bfloat16>(__device_bfloat16* logits,
+                                                       const int64_t *cur_len,
+                                                       const int64_t *min_len,
+                                                       const int64_t *eos_token_id,
+                                                       const int64_t bs,
+                                                       const int64_t length,
+                                                       const int64_t end_length) {
+    int bi = threadIdx.x;
+    if (bi >= bs) return;
+    if (cur_len[bi] < 0) {
+        return;
+    }
+    if (cur_len[bi] < min_len[bi]) {
+        for (int i=0; i < end_length; i++) {
+            logits[bi * length + eos_token_id[i]] = __float2bfloat16(-1e4);
+        }
+    }
+}
 
 __global__ void update_repeat_times(const int64_t *pre_ids,
                                     const int64_t *cur_len,
@@ -88,15 +108,15 @@ __global__ void update_value_by_repeat_times(const int *repeat_times,
     int tid = threadIdx.x;
     T *logits_now = logits + bi * length;
     const int *repeat_times_now = repeat_times + bi * length;
-    float alpha = static_cast<float>(penalty_scores[bi]);
-    float beta = static_cast<float>(frequency_score[bi]);
-    float gamma = static_cast<float>(presence_score[bi]);
+    float alpha = type_convert<float>(penalty_scores[bi]);
+    float beta = type_convert<float>(frequency_score[bi]);
+    float gamma = type_convert<float>(presence_score[bi]);
     for (int i = tid; i < length; i += blockDim.x) {
         int times = repeat_times_now[i];
         if (times == 0) continue;
-        float logit_now = static_cast<float>(logits_now[i]);
+        float logit_now = type_convert<float>(logits_now[i]);
         logit_now = logit_now < 0 ? logit_now * alpha : logit_now / alpha;
-        logits_now[i] = static_cast<T>(logit_now - times * beta - gamma);
+        logits_now[i] = type_convert<T>(logit_now - times * beta - gamma);
     }
 }
 

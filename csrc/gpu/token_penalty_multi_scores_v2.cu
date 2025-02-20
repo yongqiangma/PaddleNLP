@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "helper.h"
+#include "helper_func.h"
 
 
 template<typename T>
@@ -30,7 +30,7 @@ __global__ inline void min_length_logits_process_v2(T* logits,
     }
     if (cur_len[bi] < min_len[bi]) {
         for (int i=0; i < end_length; i++) {
-            logits[bi * length + eos_token_id[i]] = -1e10;
+            logits[bi * length + eos_token_id[i]] = type_convert<T>(-1e10f);
         }
     }
 }
@@ -50,10 +50,11 @@ __global__ inline void min_length_logits_process_v2<half>(half* logits,
     }
     if (cur_len[bi] < min_len[bi]) {
         for (int i=0; i < end_length; i++) {
-            logits[bi * length + eos_token_id[i]] = -1e4;
+            logits[bi * length + eos_token_id[i]] = type_convert<half>(-1e4f);
         }
     }
 }
+
 
 
 __global__ void update_repeat_times_v2(const int64_t *pre_ids,
@@ -89,17 +90,17 @@ __global__ void update_value_by_repeat_times_v2(const int *repeat_times,
     int tid = threadIdx.x;
     T *logits_now = logits + bi * length;
     const int *repeat_times_now = repeat_times + bi * length;
-    float alpha = static_cast<float>(penalty_scores[bi]);
-    float beta = static_cast<float>(frequency_score[bi]);
-    float gamma = static_cast<float>(presence_score[bi]);
+    float alpha = type_convert<float>(penalty_scores[bi]);
+    float beta = type_convert<float>(frequency_score[bi]);
+    float gamma = type_convert<float>(presence_score[bi]);
     for (int i = tid; i < length; i += blockDim.x) {
         int times = repeat_times_now[i];
-        float logit_now = static_cast<float>(logits_now[i]);
+        float logit_now = type_convert<float>(logits_now[i]);
         if (times != 0) {
             logit_now = logit_now < 0 ? logit_now * alpha : logit_now / alpha;
             logit_now = logit_now - times * beta - gamma;
         }
-        logits_now[i] = static_cast<T>(logit_now / temperatures[bi]);
+        logits_now[i] = type_convert<T>(logit_now / temperatures[bi]);
     }
 }
 
@@ -115,9 +116,10 @@ __global__ void ban_bad_words(T *logits,
     for (int i = tid; i < bad_words_length; i += blockDim.x) {
         const int64_t bad_words_token_id = bad_words_list[i];
         if (bad_words_token_id >= length || bad_words_token_id < 0) continue;
-        logits_now[bad_words_token_id] = -1e10;
+        logits_now[bad_words_token_id] = type_convert<T>(-1e10f);
     }
 }
+
 
 template <paddle::DataType D>
 void token_penalty_multi_scores_kernel_v2(const paddle::Tensor& pre_ids,

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "helper.h"
+#include "helper_func.h"
 
 template<typename T>
 __global__ void set_preids_token_penalty_multi_scores_kernel(const bool *stop_flags,
@@ -62,7 +62,7 @@ __global__ void set_preids_token_penalty_multi_scores_kernel(const bool *stop_fl
     if (bi < bs) {
         if (cur_len[bi] < min_len[bi]) {
             if (tid < end_length) {
-                logits_now[eos_token_id[tid]] = -1e10;
+                logits_now[eos_token_id[tid]] = type_convert<T>(-1e10f);
             }
         }
     }
@@ -76,24 +76,24 @@ __global__ void set_preids_token_penalty_multi_scores_kernel(const bool *stop_fl
     }
     __syncthreads();
     // penalty_scores process
-    float alpha = static_cast<float>(penalty_scores[bi]);
-    float beta = static_cast<float>(frequency_score[bi]);
-    float gamma = static_cast<float>(presence_score[bi]);
+    float alpha = type_convert<float>(penalty_scores[bi]);
+    float beta = type_convert<float>(frequency_score[bi]);
+    float gamma = type_convert<float>(presence_score[bi]);
     for (int i = tid; i < length; i += blockDim.x) {
         int times = repeat_times_now[i];
-        float logit_now = static_cast<float>(logits_now[i]);
+        float logit_now = type_convert<float>(logits_now[i]);
         if (times != 0) {
             logit_now = logit_now < 0 ? logit_now * alpha : logit_now / alpha;
             logit_now = logit_now - times * beta - gamma;
         }
-        logits_now[i] = static_cast<T>(logit_now / temperatures[bi]);
+        logits_now[i] = type_convert<T>(logit_now / temperatures[bi]);
     }
     __syncthreads();
     // bad_words process
     for (int i = tid; i < bad_words_length; i += blockDim.x) {
         const int64_t bad_words_token_id = bad_words_list[i];
         if (bad_words_token_id >= length || bad_words_token_id < 0) continue;
-        logits_now[bad_words_token_id] = -1e10;
+        logits_now[bad_words_token_id] = type_convert<T>(-1e10f);
     }
 }
 
